@@ -60,115 +60,109 @@ public class ClientHandler extends Thread {
             dataInputStream.readFully(iv);
             System.out.println("IV received");
 
+            while (!socket.isClosed()) {
 
 
-            // Read user name
-            int userNameLength = dataInputStream.readInt();
-            byte[] userNameBytes = new byte[userNameLength];
-            dataInputStream.readFully(userNameBytes, 0, userNameBytes.length);
-            String userName = new String(userNameBytes);
-            System.out.println("username received "+ userName);
+                // Read user name
+                int userNameLength = dataInputStream.readInt();
+                byte[] userNameBytes = new byte[userNameLength];
+                dataInputStream.readFully(userNameBytes, 0, userNameBytes.length);
+                String userName = new String(userNameBytes);
+                System.out.println("username received " + userName);
 
-            // Read file name
-            int fileNameLength = dataInputStream.readInt();
-            System.out.println("received file name sent, length = " + fileNameLength);
-            if (fileNameLength > 0) {
+                // Read file name
+                int fileNameLength = dataInputStream.readInt();
+                if (fileNameLength > 0) {
+
+                    byte[] fileNameBytes = new byte[fileNameLength];
+                    dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
+                    String fileName = new String(fileNameBytes);
 
 
+                    long timestamp = dataInputStream.readLong();
+                    System.out.println("file is sent at = " + timestamp);
+
+                    // Read encrypted file content
+                    int fileContentLength = dataInputStream.readInt();
+
+                    System.out.println("received file bytes sent, length = " + fileContentLength);
+
+                    if (fileContentLength > 0) {
+                        byte[] encryptedFileBytes = new byte[fileContentLength];
+                        dataInputStream.readFully(encryptedFileBytes, 0, fileContentLength);
+
+                        // Decrypt the file content using AES
+                        byte[] decryptedFileBytes = decryptFileWithAES(encryptedFileBytes, aesKey, iv);
+
+                        if (decryptedFileBytes != null) {
+                            long currentTime = Instant.now().toEpochMilli();
+                            if (currentTime - timestamp < 300000) {
+
+                                System.out.println("Message was sent less than 5 minutes ago");
+
+                                JPanel jpFileRow = new JPanel();
+                                jpFileRow.setLayout(new BoxLayout(jpFileRow, BoxLayout.Y_AXIS));
+
+                                JLabel jFileName = new JLabel(userName + " sends " + fileName + " (AES Encrypted)");
+                                jFileName.setFont(new Font("Arial", Font.BOLD, 20));
+                                jFileName.setBorder(new EmptyBorder(10, 0, 10, 0));
+                                jFileName.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+                                jpFileRow.setName(String.valueOf(fileId));
+
+                                for (MouseListener ml : jpFileRow.getMouseListeners()) {
+                                    jpFileRow.removeMouseListener(ml);
+                                }
+                                jpFileRow.addMouseListener(getMyMouseListener());
+
+                                jpFileRow.add(jFileName);
+
+                                jPanel.add(jpFileRow);
+                                jPanel.revalidate();
+                                jPanel.repaint();
+
+                                jPanel.add(jpFileRow);
+                                jpFileRow.validate();
+
+                                myFiles.add(new MyFile(fileId, fileName, decryptedFileBytes, getFileExtension(fileName)));
+                                fileId++;
+
+                                System.out.println("File '" + fileName + "' received and decrypted successfully");
+                                System.out.println("Decrypted file length: " + decryptedFileBytes.length);
 
 
-                byte[] fileNameBytes = new byte[fileNameLength];
-                dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
-                String fileName = new String(fileNameBytes);
-                System.out.println("received file name = " + fileName);
-
-                long timestamp = dataInputStream.readLong();
-                System.out.println("file is sent at = " + timestamp);
-
-                // Read encrypted file content
-                int fileContentLength = dataInputStream.readInt();
-
-                System.out.println("received file bytes sent, length = " + fileContentLength);
-
-                if (fileContentLength > 0) {
-                    byte[] encryptedFileBytes = new byte[fileContentLength];
-                    dataInputStream.readFully(encryptedFileBytes, 0, fileContentLength);
-
-                    // Decrypt the file content using AES
-                    byte[] decryptedFileBytes = decryptFileWithAES(encryptedFileBytes, aesKey, iv);
-
-                    if (decryptedFileBytes != null) {
-                        long currentTime = Instant.now().toEpochMilli();
-                        if (currentTime - timestamp < 300000) {
-
-                            System.out.println("Message was sent less than 5 minutes ago");
-
-                            JPanel jpFileRow = new JPanel();
-                            jpFileRow.setLayout(new BoxLayout(jpFileRow, BoxLayout.Y_AXIS));
-
-                            JLabel jFileName = new JLabel(userName + " sends " + fileName + " (AES Encrypted)");
-                            jFileName.setFont(new Font("Arial", Font.BOLD, 20));
-                            jFileName.setBorder(new EmptyBorder(10, 0, 10, 0));
-                            jFileName.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-                            jpFileRow.setName(String.valueOf(fileId));
-
-                            for (MouseListener ml : jpFileRow.getMouseListeners()) {
-                                jpFileRow.removeMouseListener(ml);
+                            } else {
+                                System.out.println("Message is too old ");
                             }
-                            jpFileRow.addMouseListener(getMyMouseListener());
-
-                            jpFileRow.add(jFileName);
-
-                            jPanel.add(jpFileRow);
-                            jPanel.revalidate();
-                            jPanel.repaint();
-
-                            jPanel.add(jpFileRow);
-                            jpFileRow.validate();
-
-                            myFiles.add(new MyFile(fileId, fileName, decryptedFileBytes, getFileExtension(fileName)));
-                            fileId++;
-
-                            System.out.println("File '" + fileName + "' received and decrypted successfully");
-                            System.out.println("Decrypted file length: " + decryptedFileBytes.length);
 
 
-                        }
-                        else {
-                            System.out.println("Message is too old ");
-                        }
-
-
-                        // Receive hash
-                        int hashLength = dataInputStream.readInt();
-                        byte[] receivedHash = new byte[hashLength];
-                        dataInputStream.readFully(receivedHash);
-                        System.out.println("Received hash of file with key appended");
+                            // Receive hash
+                            int hashLength = dataInputStream.readInt();
+                            byte[] receivedHash = new byte[hashLength];
+                            dataInputStream.readFully(receivedHash);
+                            System.out.println("Received hash of file with key appended");
 
 // Compute hash on server side
-                        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                        digest.update(decryptedFileBytes); // M'
-                        digest.update(ByteBuffer.allocate(8).putLong(timestamp).array());
-                        digest.update(userName.getBytes());
-                        digest.update(aesKey.getEncoded()); // K
-                        byte[] computedHash = digest.digest();
-
-
+                            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                            digest.update(decryptedFileBytes); // M'
+                            digest.update(ByteBuffer.allocate(8).putLong(timestamp).array());
+                            digest.update(userName.getBytes());
+                            digest.update(aesKey.getEncoded()); // K
+                            byte[] computedHash = digest.digest();
 
 
 // Verify integrity
-                        if (MessageDigest.isEqual(receivedHash, computedHash)) {
-                            System.out.println("Integrity verified: hash matches.");
+                            if (MessageDigest.isEqual(receivedHash, computedHash)) {
+                                System.out.println("Integrity verified: hash matches.");
+                            } else {
+                                System.err.println("Integrity check failed: hash does not match.");
+
+                            }
+
+
                         } else {
-                            System.err.println("Integrity check failed: hash does not match.");
-
+                            System.err.println("Failed to decrypt file: " + fileName);
                         }
-
-
-
-                    } else {
-                        System.err.println("Failed to decrypt file: " + fileName);
                     }
                 }
             }

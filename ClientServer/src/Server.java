@@ -39,7 +39,7 @@ public class Server {
         JScrollPane jScrollPane = new JScrollPane(jPanel);
         jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
-        JLabel jlTitle = new JLabel("File Receiver (RSA+AES Encrypted)");
+        JLabel jlTitle = new JLabel("File Receiver");
         jlTitle.setFont(new Font("Arial", Font.BOLD, 25));
         jlTitle.setBorder(new EmptyBorder(20, 0, 10, 0));
         jlTitle.setAlignmentX(Component.CENTER_ALIGNMENT);

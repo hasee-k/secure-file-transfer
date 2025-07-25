@@ -130,7 +130,7 @@ public class Client{
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jFrame.setLocationRelativeTo(null);
 
-        JLabel jlTitle = new JLabel("File Sender (RSA+AES Encrypted)");
+        JLabel jlTitle = new JLabel("File Sender");
         jlTitle.setFont(new Font("Arial", Font.BOLD, 20));
         jlTitle.setBorder(new EmptyBorder(20, 0, 10, 0));
         jlTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -265,7 +265,7 @@ public class Client{
             byte[] fileNameBytes = file.getName().getBytes();
             dataOutputStream.writeInt(fileNameBytes.length);
             dataOutputStream.write(fileNameBytes);
-            System.out.println("Sent fileName");
+
 
             // Send timestamp
             dataOutputStream.writeLong(timestamp);
