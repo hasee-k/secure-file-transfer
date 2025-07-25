@@ -1,3 +1,5 @@
+import org.mindrot.jbcrypt.BCrypt;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -15,6 +17,10 @@ import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.X509EncodedKeySpec;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Instant;
 
 public class Client{
@@ -24,7 +30,6 @@ public class Client{
     private static Socket socket;
     private static DataOutputStream dataOutputStream;
     private static DataInputStream dataInputStream;
-
     private static File fileToSend = null;
     private static String loggedInUsername = "";
 
@@ -98,10 +103,14 @@ public class Client{
                 return;
             }
 
-            // For now, accept any login (authentication logic to be added later)
-            loggedInUsername = username;
-            loginFrame.dispose();
-            showMainFrame();
+            if (authenticateUser(username, password)) {
+                loggedInUsername = username;
+                loginFrame.dispose();
+                showMainFrame();
+            } else {
+                JOptionPane.showMessageDialog(loginFrame, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
+            }
+
         });
 
         // Allow Enter key to trigger login
@@ -237,6 +246,7 @@ public class Client{
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(fileBytes); // M (message/file)
             digest.update(timestampBytes); // T (timestamp)
+            digest.update(loggedInUsername.getBytes());
             digest.update(aesKey.getEncoded()); // K (key)
             byte[] hashOfFile = digest.digest();
 
@@ -277,4 +287,29 @@ public class Client{
             System.err.println("Failed to send file.");
         }
     }
+
+    private static boolean authenticateUser(String username, String password) {
+        String url = System.getenv("DB_URL");
+        String user = System.getenv("DB_USER");
+        String dbPassword = System.getenv("DB_PASSWORD");
+
+        try (Connection conn = DriverManager.getConnection(url, user, dbPassword)) {
+            String sql = "SELECT password_hash FROM users WHERE username = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String storedHash = rs.getString("password_hash");
+                return BCrypt.checkpw(password, storedHash);
+            } else {
+                System.out.println("User not found.");
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }

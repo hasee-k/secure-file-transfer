@@ -150,6 +150,7 @@ public class ClientHandler extends Thread {
                         MessageDigest digest = MessageDigest.getInstance("SHA-256");
                         digest.update(decryptedFileBytes); // M'
                         digest.update(ByteBuffer.allocate(8).putLong(timestamp).array());
+                        digest.update(userName.getBytes());
                         digest.update(aesKey.getEncoded()); // K
                         byte[] computedHash = digest.digest();
 
