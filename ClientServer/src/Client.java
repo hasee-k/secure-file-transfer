@@ -113,7 +113,7 @@ public class Client{
 
         });
 
-        // Allow Enter key to trigger login
+
         jpfPassword.addActionListener((ActionEvent e) -> jbLogin.doClick());
         jtfUsername.addActionListener((ActionEvent e) -> jpfPassword.requestFocus());
 
@@ -190,7 +190,7 @@ public class Client{
             dataOutputStream = new DataOutputStream(socket.getOutputStream());
             dataInputStream = new DataInputStream(socket.getInputStream());
 
-            // Receive RSA Public Key
+
             int publicKeyLength = dataInputStream.readInt();
             byte[] publicKeyBytes = new byte[publicKeyLength];
             dataInputStream.readFully(publicKeyBytes);
@@ -200,22 +200,22 @@ public class Client{
             serverRSAPublicKey = keyFactory.generatePublic(publicKeySpec);
             System.out.println("Received RSA Public Key from server.");
 
-            // Generate AES Key
+
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
             keyGen.init(256);
             aesKey = keyGen.generateKey();
             System.out.println("Generated AES Key.");
 
-            // Encrypt AES Key with RSA Public Key
+
             Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             rsaCipher.init(Cipher.ENCRYPT_MODE, serverRSAPublicKey);
             byte[] encryptedAESKey = rsaCipher.doFinal(aesKey.getEncoded());
 
-            // Generate IV
+
             iv = new byte[16];
             new SecureRandom().nextBytes(iv);
 
-            // Send encrypted AES Key and IV
+
             dataOutputStream.writeInt(encryptedAESKey.length);
             dataOutputStream.write(encryptedAESKey);
 
@@ -234,49 +234,49 @@ public class Client{
     private static void sendFile(File file) {
         try {
             long timestamp = Instant.now().toEpochMilli();
-            // Convert timestamp to bytes
+
             byte[] timestampBytes = ByteBuffer.allocate(8).putLong(timestamp).array();
 
-            // Read file bytes
+
             FileInputStream fis = new FileInputStream(file);
             byte[] fileBytes = fis.readAllBytes();
             fis.close();
 
-            // Hash file before encryption using SHA-256 (or SHA-512) with key appended
+
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update(fileBytes); // M (message/file)
-            digest.update(timestampBytes); // T (timestamp)
+            digest.update(fileBytes);
+            digest.update(timestampBytes);
             digest.update(loggedInUsername.getBytes());
-            digest.update(aesKey.getEncoded()); // K (key)
+            digest.update(aesKey.getEncoded());
             byte[] hashOfFile = digest.digest();
 
-            // Encrypt file with AES
+
             Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             aesCipher.init(Cipher.ENCRYPT_MODE, aesKey, new IvParameterSpec(iv));
             byte[] encryptedFileBytes = aesCipher.doFinal(fileBytes);
 
-            // Send username (now using the logged-in username)
+
             byte[] userNameBytes = loggedInUsername.getBytes();
             dataOutputStream.writeInt(userNameBytes.length);
             dataOutputStream.write(userNameBytes);
             System.out.println("Sent username: " + loggedInUsername);
 
-            // Send file name
+
             byte[] fileNameBytes = file.getName().getBytes();
             dataOutputStream.writeInt(fileNameBytes.length);
             dataOutputStream.write(fileNameBytes);
 
 
-            // Send timestamp
+
             dataOutputStream.writeLong(timestamp);
             System.out.println("Sent timestamp: " + timestamp + " (" + Instant.ofEpochMilli(timestamp) + ")");
 
-            // Send encrypted file
+
             dataOutputStream.writeInt(encryptedFileBytes.length);
             dataOutputStream.write(encryptedFileBytes);
             System.out.println("Sent file: " + file.getName() + " (Encrypted with AES)");
 
-            // Send hash length and hash
+
             dataOutputStream.writeInt(hashOfFile.length);
             dataOutputStream.write(hashOfFile);
             System.out.println("Sent hash of file with key appended");

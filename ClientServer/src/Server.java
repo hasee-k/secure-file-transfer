@@ -17,7 +17,7 @@ public class Server {
     static KeyPair rsaKeyPair;
 
     public static void main(String[] args) throws IOException {
-        // Generate RSA key pair for key exchange
+
         try {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
@@ -55,7 +55,7 @@ public class Server {
                 DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
                 DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
-                // Send RSA public key to client for key exchange
+
                 byte[] publicKeyBytes = rsaKeyPair.getPublic().getEncoded();
                 dataOutputStream.writeInt(publicKeyBytes.length);
                 dataOutputStream.write(publicKeyBytes);

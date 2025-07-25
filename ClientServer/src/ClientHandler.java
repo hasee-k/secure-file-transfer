@@ -41,12 +41,12 @@ public class ClientHandler extends Thread {
     @Override
     public void run() {
         try {
-            // First, receive the encrypted AES key from client
+
             int encryptedKeyLength = dataInputStream.readInt();
             byte[] encryptedAESKey = new byte[encryptedKeyLength];
             dataInputStream.readFully(encryptedAESKey);
 
-            // Decrypt AES key using RSA private key
+
             SecretKeySpec aesKey = decryptAESKey(encryptedAESKey);
             if (aesKey == null) {
                 System.err.println("Failed to decrypt AES key");
@@ -54,7 +54,7 @@ public class ClientHandler extends Thread {
             }
             System.out.println("AES key received and decrypted successfully");
 
-            // Receive IV for AES decryption
+
             int ivLength = dataInputStream.readInt();
             byte[] iv = new byte[ivLength];
             dataInputStream.readFully(iv);
@@ -63,14 +63,14 @@ public class ClientHandler extends Thread {
             while (!socket.isClosed()) {
 
 
-                // Read user name
+
                 int userNameLength = dataInputStream.readInt();
                 byte[] userNameBytes = new byte[userNameLength];
                 dataInputStream.readFully(userNameBytes, 0, userNameBytes.length);
                 String userName = new String(userNameBytes);
                 System.out.println("username received " + userName);
 
-                // Read file name
+
                 int fileNameLength = dataInputStream.readInt();
                 if (fileNameLength > 0) {
 
@@ -82,7 +82,7 @@ public class ClientHandler extends Thread {
                     long timestamp = dataInputStream.readLong();
                     System.out.println("file is sent at = " + timestamp);
 
-                    // Read encrypted file content
+
                     int fileContentLength = dataInputStream.readInt();
 
                     System.out.println("received file bytes sent, length = " + fileContentLength);
@@ -91,7 +91,7 @@ public class ClientHandler extends Thread {
                         byte[] encryptedFileBytes = new byte[fileContentLength];
                         dataInputStream.readFully(encryptedFileBytes, 0, fileContentLength);
 
-                        // Decrypt the file content using AES
+
                         byte[] decryptedFileBytes = decryptFileWithAES(encryptedFileBytes, aesKey, iv);
 
                         if (decryptedFileBytes != null) {
@@ -136,13 +136,13 @@ public class ClientHandler extends Thread {
                             }
 
 
-                            // Receive hash
+
                             int hashLength = dataInputStream.readInt();
                             byte[] receivedHash = new byte[hashLength];
                             dataInputStream.readFully(receivedHash);
                             System.out.println("Received hash of file with key appended");
 
-// Compute hash on server side
+
                             MessageDigest digest = MessageDigest.getInstance("SHA-256");
                             digest.update(decryptedFileBytes); // M'
                             digest.update(ByteBuffer.allocate(8).putLong(timestamp).array());
@@ -151,7 +151,7 @@ public class ClientHandler extends Thread {
                             byte[] computedHash = digest.digest();
 
 
-// Verify integrity
+
                             if (MessageDigest.isEqual(receivedHash, computedHash)) {
                                 System.out.println("Integrity verified: hash matches.");
                             } else {
