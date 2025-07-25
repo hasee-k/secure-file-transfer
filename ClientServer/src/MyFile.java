@@ -1,5 +1,3 @@
-package ClientServer;
-
 public class MyFile {
 	
  private int id;

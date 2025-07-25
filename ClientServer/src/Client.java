@@ -1,5 +1,3 @@
-package ClientServer;
-
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
